@@ -38,7 +38,7 @@ app.get("/", (req, res) => {
 // API routes
 app.use("/api/generation", generationRoutes);
 app.use("/api/publish", publishRoutes);
-app.use("/api/payment", paymentRoutes);
+app.use("/api/payments", paymentRoutes);
 // Handle unknown routes
 app.use((req, res) => {
   res.status(404).json({
