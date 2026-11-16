@@ -12,7 +12,7 @@ const publishWebsiteController = async (req, res) => {
       });
     }
 
-    // Find the project and verify ownership.
+    // Verify project ownership and retrieve its details.
     const { data: project, error: projectError } = await supabase
       .from("projects")
       .select("id, user_id, business_name, status, subdomain, site_data")
@@ -35,7 +35,7 @@ const publishWebsiteController = async (req, res) => {
       });
     }
 
-    // Reuse the existing subdomain if already assigned.
+    // Reuse existing subdomain or create one.
     const subdomain =
       project.subdomain ||
       `${project.business_name
@@ -44,18 +44,18 @@ const publishWebsiteController = async (req, res) => {
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-|-$/g, "")}-${project.id.slice(0, 8)}`;
 
-    const { error: updateError } = await supabase
-      .from("projects")
-      .update({
-        status: "published",
-        subdomain,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", project.id)
-      .eq("user_id", req.user.id);
+    // Securely enforce the user's publishing limit.
+    const { data: result, error: publishError } = await supabase.rpc(
+      "publish_user_project",
+      {
+        p_user_id: req.user.id,
+        p_project_id: project.id,
+        p_subdomain: subdomain,
+      }
+    );
 
-    if (updateError) {
-      console.error("Publishing error:", updateError.message);
+    if (publishError) {
+      console.error("Publishing limit error:", publishError.message);
 
       return res.status(500).json({
         success: false,
@@ -63,12 +63,48 @@ const publishWebsiteController = async (req, res) => {
       });
     }
 
+    if (result === "billing_not_found") {
+      return res.status(403).json({
+        success: false,
+        message: "Your billing account could not be found.",
+      });
+    }
+
+    if (result === "project_not_found") {
+      return res.status(404).json({
+        success: false,
+        message: "Project not found.",
+      });
+    }
+
+    if (result === "limit_reached") {
+      return res.status(403).json({
+        success: false,
+        message:
+          "You have reached your publishing limit. Upgrade your WEBLIVO plan to publish more websites.",
+      });
+    }
+
+    if (
+      result !== "published" &&
+      result !== "already_published"
+    ) {
+      return res.status(500).json({
+        success: false,
+        message: "Something went wrong while publishing your website.",
+      });
+    }
+
     return res.status(200).json({
       success: true,
-      message: "Your website has been published successfully.",
+      message:
+        result === "already_published"
+          ? "Your website is already published."
+          : "Your website has been published successfully.",
       subdomain,
       url: `${process.env.FRONTEND_URL || "http://localhost:3000"}/site/${subdomain}`,
     });
+
   } catch (error) {
     console.error("Publish controller error:", error.message);
 
