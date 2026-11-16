@@ -1,6 +1,7 @@
 
 const PALETTES = {
   modern: [
+    // Original palettes
     {
       name: "Navy Blue",
       primaryColor: "#243B64",
@@ -21,9 +22,32 @@ const PALETTES = {
       primaryColor: "#155E63",
       secondaryColor: "#EAF5F4",
     },
+
+    // New palettes
+    {
+      name: "Midnight Blue",
+      primaryColor: "#243B53",
+      secondaryColor: "#EDF3F8",
+    },
+    {
+      name: "Ocean Teal",
+      primaryColor: "#1F6175",
+      secondaryColor: "#EAF4F5",
+    },
+    {
+      name: "Warm Terracotta",
+      primaryColor: "#914737",
+      secondaryColor: "#F9EFEB",
+    },
+    {
+      name: "Deep Aubergine",
+      primaryColor: "#514064",
+      secondaryColor: "#F2EEF6",
+    },
   ],
 
   minimal: [
+    // Original palettes
     {
       name: "Soft Charcoal",
       primaryColor: "#343A40",
@@ -39,9 +63,32 @@ const PALETTES = {
       primaryColor: "#53634A",
       secondaryColor: "#F2F4EC",
     },
+
+    // New palettes
+    {
+      name: "Warm Cocoa",
+      primaryColor: "#654B3E",
+      secondaryColor: "#F6F0E9",
+    },
+    {
+      name: "Quiet Sage",
+      primaryColor: "#42615A",
+      secondaryColor: "#EDF3EF",
+    },
+    {
+      name: "Dusty Blue",
+      primaryColor: "#45627A",
+      secondaryColor: "#EFF3F7",
+    },
+    {
+      name: "Soft Sand",
+      primaryColor: "#79634B",
+      secondaryColor: "#F7F1E8",
+    },
   ],
 
   luxury: [
+    // Original palettes
     {
       name: "Burgundy",
       primaryColor: "#713B48",
@@ -62,9 +109,32 @@ const PALETTES = {
       primaryColor: "#202F4A",
       secondaryColor: "#EEF1F6",
     },
+
+    // New palettes
+    {
+      name: "Rich Espresso",
+      primaryColor: "#49352D",
+      secondaryColor: "#F5EDE5",
+    },
+    {
+      name: "Rosewood",
+      primaryColor: "#783C51",
+      secondaryColor: "#F8EDF0",
+    },
+    {
+      name: "Imperial Gold",
+      primaryColor: "#75551C",
+      secondaryColor: "#F7F0DE",
+    },
+    {
+      name: "Royal Sapphire",
+      primaryColor: "#263C68",
+      secondaryColor: "#EDF1F8",
+    },
   ],
 
   creative: [
+    // Original palettes
     {
       name: "Deep Teal",
       primaryColor: "#176B70",
@@ -85,11 +155,33 @@ const PALETTES = {
       primaryColor: "#285943",
       secondaryColor: "#EDF4ED",
     },
+
+    // New palettes
+    {
+      name: "Cobalt Dream",
+      primaryColor: "#304F91",
+      secondaryColor: "#EDF1FA",
+    },
+    {
+      name: "Golden Earth",
+      primaryColor: "#75551C",
+      secondaryColor: "#F7F0DE",
+    },
+    {
+      name: "Coral Bloom",
+      primaryColor: "#A44754",
+      secondaryColor: "#FBEDEF",
+    },
+    {
+      name: "Violet Garden",
+      primaryColor: "#60447C",
+      secondaryColor: "#F3EEF8",
+    },
   ],
 };
 
 function getWebsitePalette(designStyle = "Modern", previousTheme = null) {
-  const style = String(designStyle).toLowerCase();
+  const style = String(designStyle).toLowerCase().trim();
 
   const availablePalettes =
     PALETTES[style] || PALETTES.modern;

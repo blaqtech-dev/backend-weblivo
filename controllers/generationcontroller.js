@@ -3,6 +3,8 @@ const supabase = require("../config/supabase");
 const { generateWebsite } = require("../services/groqservice");
 
 const generateWebsiteController = async (req, res) => {
+  let creditTransactionId = null;
+
   try {
     const { projectId } = req.params;
 
@@ -13,7 +15,7 @@ const generateWebsiteController = async (req, res) => {
       });
     }
 
-    // Find the project and verify its ownership.
+    // Verify project ownership.
     const { data: project, error: projectError } = await supabase
       .from("projects")
       .select("*")
@@ -28,7 +30,7 @@ const generateWebsiteController = async (req, res) => {
       });
     }
 
-    // Validate the saved business information.
+    // Validate saved business information.
     if (
       !project.business_name ||
       !project.description ||
@@ -41,21 +43,48 @@ const generateWebsiteController = async (req, res) => {
       });
     }
 
-    // Generate the website using Groq.
-const websiteData = await generateWebsite({
-  businessName: project.business_name,
-  businessType: project.site_data.business_type,
-  description: project.description,
-  designStyle: project.site_data.design_style,
-  contactDetails: project.site_data.contact_details || {},
-  previousTheme: project.site_data.generated?.theme || null,
-});
-    // Save the generated website without losing the original project details.
+    // Reserve one AI credit atomically.
+    const { data: transactionId, error: creditError } =
+      await supabase.rpc("consume_user_credit", {
+        p_user_id: req.user.id,
+      });
+
+    if (creditError) {
+      console.error("Credit deduction error:", creditError.message);
+
+      return res.status(500).json({
+        success: false,
+        message: "Unable to verify your AI credits. Please try again.",
+      });
+    }
+
+    if (!transactionId) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "You have no AI credits remaining. Please upgrade your plan to continue generating websites.",
+      });
+    }
+
+    creditTransactionId = transactionId;
+
+    // Generate website using Groq.
+    const websiteData = await generateWebsite({
+      businessName: project.business_name,
+      businessType: project.site_data.business_type,
+      description: project.description,
+      designStyle: project.site_data.design_style,
+      contactDetails: project.site_data.contact_details || {},
+      previousTheme: project.site_data.generated?.theme || null,
+    });
+
+    // Preserve existing project information.
     const updatedSiteData = {
       ...project.site_data,
       generated: websiteData,
     };
 
+    // Save generated website.
     const { data: updatedProject, error: updateError } = await supabase
       .from("projects")
       .update({
@@ -67,26 +96,96 @@ const websiteData = await generateWebsite({
       .select("id, name, business_name, status, site_data")
       .single();
 
-    if (updateError) {
-      console.error("Website save error:", updateError.message);
+    if (updateError || !updatedProject) {
+      console.error(
+        "Website save error:",
+        updateError?.message || "Updated project was not returned."
+      );
 
-      return res.status(500).json({
-        success: false,
-        message: "Website generated, but we could not save it. Please try again.",
-      });
+      const saveError = new Error("Website save failed.");
+      saveError.status = 500;
+      throw saveError;
+    }
+
+    // Generation and saving succeeded.
+    // The reserved credit is now permanently consumed.
+    creditTransactionId = null;
+
+    // Retrieve the updated credit balance.
+    const { data: billing, error: billingError } = await supabase
+      .from("user_billing")
+      .select("credits_remaining")
+      .eq("user_id", req.user.id)
+      .maybeSingle();
+
+    if (billingError) {
+      console.error("Credit balance lookup error:", billingError.message);
     }
 
     return res.status(200).json({
       success: true,
       message: "Your website has been generated successfully.",
       project: updatedProject,
+      creditsRemaining: billing?.credits_remaining ?? null,
     });
-  } catch (error) {
-    console.error("Website generation error:", error.message);
 
-    return res.status(500).json({
+  } catch (error) {
+    console.error("Website generation error:", error);
+
+    // Refund reserved credit when generation or saving fails.
+    if (creditTransactionId) {
+      const { data: refunded, error: refundError } = await supabase.rpc(
+        "refund_user_credit",
+        {
+          p_transaction_id: creditTransactionId,
+        }
+      );
+
+      if (refundError || !refunded) {
+        console.error(
+          "IMPORTANT: Credit refund failed:",
+          refundError?.message || "Refund was not completed."
+        );
+      } else {
+        console.log("Failed generation credit successfully refunded.");
+      }
+    }
+
+    // Groq rate limit.
+    if (error.status === 429) {
+      return res.status(429).json({
+        success: false,
+        message:
+          "WEBLIVO AI has temporarily reached its usage limit. Please try again later. Your existing website and saved changes are safe.",
+      });
+    }
+
+    // AI service temporarily unavailable.
+    if (error.status === 502 || error.status === 503) {
+      return res.status(503).json({
+        success: false,
+        message:
+          "Our AI service is temporarily unavailable. Please try again shortly. Your existing website and saved changes are safe.",
+      });
+    }
+
+    // Request timeout.
+    if (
+      error.code === "ETIMEDOUT" ||
+      error.code === "ECONNABORTED"
+    ) {
+      return res.status(504).json({
+        success: false,
+        message:
+          "Website generation is taking longer than expected. Please try again. Your existing website and saved changes are safe.",
+      });
+    }
+
+    // Other unexpected errors.
+    return res.status(error.status || 500).json({
       success: false,
-      message: "Unable to generate your website right now. Please try again.",
+      message:
+        "We couldn't generate your website right now. Please try again shortly. Your existing website and saved changes are safe.",
     });
   }
 };
