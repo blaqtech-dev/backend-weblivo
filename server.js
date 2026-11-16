@@ -3,7 +3,7 @@ require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
-
+const paymentRoutes = require("./routes/paymentroutes");
 const generationRoutes = require("./routes/generationroutes");
 const publishRoutes = require("./routes/publishroutes");
 
@@ -38,7 +38,7 @@ app.get("/", (req, res) => {
 // API routes
 app.use("/api/generation", generationRoutes);
 app.use("/api/publish", publishRoutes);
-
+app.use("/api/payment", paymentRoutes);
 // Handle unknown routes
 app.use((req, res) => {
   res.status(404).json({
