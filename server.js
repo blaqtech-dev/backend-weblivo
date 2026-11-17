@@ -3,6 +3,7 @@ require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
+
 const paymentRoutes = require("./routes/paymentroutes");
 const generationRoutes = require("./routes/generationroutes");
 const publishRoutes = require("./routes/publishroutes");
@@ -25,7 +26,17 @@ app.use(
   })
 );
 
-app.use(express.json({ limit: "1mb" }));
+// Preserve the original request body for Paystack signature verification.
+app.use(
+  express.json({
+    limit: "1mb",
+    verify: (req, res, buf) => {
+      if (req.originalUrl.startsWith("/api/payments/webhook")) {
+        req.rawBody = Buffer.from(buf);
+      }
+    },
+  })
+);
 
 // Health check
 app.get("/", (req, res) => {
@@ -39,6 +50,7 @@ app.get("/", (req, res) => {
 app.use("/api/generation", generationRoutes);
 app.use("/api/publish", publishRoutes);
 app.use("/api/payments", paymentRoutes);
+
 // Handle unknown routes
 app.use((req, res) => {
   res.status(404).json({
