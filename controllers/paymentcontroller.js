@@ -366,6 +366,41 @@ const markWebhookFailed = async (eventKey, message) => {
 
 
 // --------------------------------------------------
+// RETRIEVE SUBSCRIPTION CODE FROM PAYSTACK
+// --------------------------------------------------
+
+const findPaystackSubscriptionCode = async (
+  customerId,
+  planId,
+  customerCode
+) => {
+  const response = await axios.get(
+    "https://api.paystack.co/subscription",
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+      },
+      params: {
+        customer: customerId,
+        plan: planId,
+        perPage: 50,
+      },
+    }
+  );
+
+  const subscriptions = response.data?.data || [];
+
+  const subscription = subscriptions.find(
+    (item) =>
+      item.status === "active" &&
+      item.customer?.customer_code === customerCode &&
+      Number(item.plan?.id) === Number(planId)
+  );
+
+  return subscription?.subscription_code || null;
+};
+
+// --------------------------------------------------
 // FIND SUBSCRIPTION
 // --------------------------------------------------
 
@@ -484,57 +519,83 @@ if (saved === "in_progress") {
     // SUCCESSFUL PAYMENT OR MONTHLY RENEWAL
     // ----------------------------------------------
 
-    if (eventType === "charge.success") {
-      if (data.status !== "success") {
-        throw new Error("Charge event was not successful.");
-      }
+  
+if (eventType === "charge.success") {
+  if (data.status !== "success") {
+    throw new Error("Charge event was not successful.");
+  }
 
-      const amount = Number(data.amount);
-      const currency = data.currency;
-      const plan = amount === 500000
-        ? "pro"
-        : amount === 1200000
-          ? "business"
-          : null;
+  const amount = Number(data.amount);
+  const currency = data.currency;
 
-      const customerCode = data.customer?.customer_code;
-      const subscriptionCode =
-        data.subscription?.subscription_code ||
-        data.subscription_code ||
-        null;
+  const plan =
+    amount === 500000
+      ? "pro"
+      : amount === 1200000
+        ? "business"
+        : null;
 
-      if (!plan || !data.reference || !data.id || !customerCode) {
-        throw new Error("Incomplete subscription payment details.");
-      }
+  const customerCode = data.customer?.customer_code;
 
-      const { data: result, error } = await supabase.rpc(
-        "process_recurring_subscription_payment",
-        {
-          p_event_key: eventKey,
-          p_reference: data.reference,
-          p_transaction_id: data.id,
-          p_customer_code: customerCode,
-          p_subscription_code: subscriptionCode,
-          p_plan: plan,
-          p_amount: amount,
-          p_currency: currency,
-        }
-      );
+  let subscriptionCode =
+    data.subscription?.subscription_code ||
+    data.subscription_code ||
+    null;
 
-      if (error) throw error;
+  if (!plan || !data.reference || !data.id || !customerCode) {
+    throw new Error("Incomplete subscription payment details.");
+  }
+// Retrieve the subscription code from Paystack if missing.
+if (!subscriptionCode && data.customer?.id && data.plan?.id) {
+  try {
+    subscriptionCode = await findPaystackSubscriptionCode(
+      data.customer.id,
+      data.plan.id,
+      customerCode
+    );
 
-      if (
-        ![
-          "original_payment_processed",
-          "renewal_processed",
-          "already_processed",
-        ].includes(result)
-      ) {
-        throw new Error(`Payment processing returned: ${result}`);
-      }
-
-      console.log("Paystack charge processed:", result);
+    if (subscriptionCode) {
+      console.log("Paystack subscription code retrieved.");
+    } else {
+      console.warn("Subscription code was not found for this customer yet.");
     }
+  } catch (subscriptionError) {
+    console.error(
+      "Could not retrieve Paystack subscription:",
+      subscriptionError.response?.data || subscriptionError.message
+    );
+  }
+}
+
+  const { data: result, error } = await supabase.rpc(
+    "process_recurring_subscription_payment",
+    {
+      p_event_key: eventKey,
+      p_reference: data.reference,
+      p_transaction_id: data.id,
+      p_customer_code: customerCode,
+      p_subscription_code: subscriptionCode,
+      p_plan: plan,
+      p_amount: amount,
+      p_currency: currency,
+    }
+  );
+
+  if (error) throw error;
+
+  if (
+    ![
+      "original_payment_processed",
+      "renewal_processed",
+      "already_processed",
+    ].includes(result)
+  ) {
+    throw new Error(`Payment processing returned: ${result}`);
+  }
+
+  console.log("Paystack charge processed:", result);
+}
+
 
     // ----------------------------------------------
     // SUBSCRIPTION CREATED
