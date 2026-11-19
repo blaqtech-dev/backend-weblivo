@@ -12,6 +12,17 @@ const supabase = createClient(
   }
 );
 
+const { rateLimit } = require("express-rate-limit");
+const bookingSubmissionLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 2, // Maximum 5 requests
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Too many booking requests. Please try again in 15 minutes.",
+  },
+});
 module.exports = supabase;
 const express = require("express");
 const router = express.Router();
@@ -25,7 +36,7 @@ const {
 } = require("../controllers/bookingcontroller");
 
 // Public: customers submit appointment requests.
-router.post("/", createBooking);
+router.post("/", bookingSubmissionLimiter, createBooking);
 
 // Protected: business owners manage their bookings.
 router.get("/:projectId", authMiddleware, getProjectBookings);
