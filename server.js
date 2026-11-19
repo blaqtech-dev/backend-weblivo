@@ -7,6 +7,7 @@ const cors = require("cors");
 const paymentRoutes = require("./routes/paymentroutes");
 const generationRoutes = require("./routes/generationroutes");
 const publishRoutes = require("./routes/publishroutes");
+const bookingRoutes = require("./routes/bookingroutes");
 
 const app = express();
 
@@ -21,7 +22,7 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: allowedOrigins,
-    methods: ["GET", "POST", "PUT", "DELETE"],
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
@@ -50,7 +51,7 @@ app.get("/", (req, res) => {
 app.use("/api/generation", generationRoutes);
 app.use("/api/publish", publishRoutes);
 app.use("/api/payments", paymentRoutes);
-
+app.use("/api/bookings", bookingRoutes);
 // Handle unknown routes
 app.use((req, res) => {
   res.status(404).json({
