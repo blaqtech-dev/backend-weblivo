@@ -8,6 +8,7 @@ const paymentRoutes = require("./routes/paymentroutes");
 const generationRoutes = require("./routes/generationroutes");
 const publishRoutes = require("./routes/publishroutes");
 const bookingRoutes = require("./routes/bookingroutes");
+const enquiryRoutes = require("./routes/enquiryroutes");
 
 const app = express();
 
@@ -52,6 +53,7 @@ app.use("/api/generation", generationRoutes);
 app.use("/api/publish", publishRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/bookings", bookingRoutes);
+app.use("/api/enquiries", enquiryRoutes);
 // Handle unknown routes
 app.use((req, res) => {
   res.status(404).json({
