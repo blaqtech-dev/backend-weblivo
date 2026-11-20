@@ -80,12 +80,12 @@ const createBooking = async (req, res) => {
     }
 
     // Confirm that the website exists and is published.
-    const { data: project, error: projectError } = await supabase
-      .from("projects")
-     .select("id, status, business_type")
-      .eq("id", projectId)
-      .eq("status", "published")
-      .maybeSingle();
+ const { data: project, error: projectError } = await supabase
+  .from("projects")
+  .select("id, status, site_data")
+  .eq("id", projectId)
+  .eq("status", "published")
+  .maybeSingle();
 
     if (projectError) {
       console.error("Booking project lookup error:", projectError.message);
@@ -96,7 +96,9 @@ const createBooking = async (req, res) => {
   return sendError(res, 404, "This website is not available for bookings.");
 }
 
-const businessType = String(project.business_type || "").toLowerCase();
+const businessType = String(
+  project.site_data?.business_type || ""
+).toLowerCase();
 
 const bookingBusinessTypes = [
   "salon",
