@@ -218,6 +218,67 @@ The hero must come first.
 
 The footer must come last.
 
+
+==================================================
+4. ABOUT SECTION LAYOUT SELECTION
+==================================================
+
+Choose the About section layout deliberately based on the
+business type, content and requested design style.
+
+Allowed About layouts:
+
+- centered
+- split
+- minimal
+
+LAYOUT GUIDELINES:
+
+CENTERED:
+Use for businesses that benefit from a balanced,
+story-focused presentation.
+
+Suitable for:
+- Restaurants and cafes.
+- Beauty and wellness businesses.
+- Personal brands.
+- Creative businesses.
+
+SPLIT:
+Use for businesses that benefit from a more editorial,
+structured presentation, with the heading and description
+visually separated.
+
+Suitable for:
+- Consulting businesses.
+- Corporate services.
+- Professional agencies.
+- Technology businesses.
+- Real estate businesses.
+
+MINIMAL:
+Use for businesses that need a clean, understated,
+typography-focused About section.
+
+Suitable for:
+- Luxury brands.
+- Premium fashion businesses.
+- Architecture and interior design.
+- High-end professional services.
+
+IMPORTANT:
+
+1. Do not always choose the same layout.
+2. Consider the actual business type before choosing.
+3. Consider the requested design style.
+4. Do not choose a layout randomly.
+5. Choose only from the three allowed About layouts.
+6. Do not select image-left or image-right because an
+   About image is not guaranteed to be available.
+7. Return the selected layout in the About section's
+   "layout" property.
+
+
 ==================================================
 4. DESIGN STYLE
 ==================================================
