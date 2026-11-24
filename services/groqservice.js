@@ -795,7 +795,23 @@ FINAL REQUIREMENTS:
 console.log("WEBLIVO FINAL THEME:", websiteData.theme);
 
 // Automatically correct unsupported section layouts
+// Automatically correct unsupported section layouts
 websiteData = normalizeWebsiteLayouts(websiteData);
+
+// Always use a full background image for the hero
+const heroSection = websiteData.sections.find(
+  (section) => section.type === "hero"
+);
+
+if (heroSection) {
+  heroSection.layout = "image-background";
+  heroSection.imagePosition = "background";
+}
+
+console.log(
+  "WEBLIVO FINAL HERO LAYOUT:",
+  heroSection?.layout
+);
 
 // Validate the corrected website data
 const validation = validateWebsiteData(websiteData);
