@@ -1,6 +1,7 @@
 
 const supabase = require("../config/supabase");
 const { generateWebsite } = require("../services/groqservice");
+const { getHeroImage } = require("../utils/heroimages");
 
 const generateWebsiteController = async (req, res) => {
   let creditTransactionId = null;
@@ -99,11 +100,26 @@ const generateWebsiteController = async (req, res) => {
     });
 
     // Preserve existing project information.
-    const updatedSiteData = {
-      ...project.site_data,
-      generated: websiteData,
-    };
+    const heroImage = getHeroImage(project.site_data.business_type);
 
+const updatedWebsiteData = {
+  ...websiteData,
+  sections: websiteData.sections.map((section) => {
+    if (section.type === "hero" && !section.image?.url) {
+      return {
+        ...section,
+        image: heroImage ? { url: heroImage } : section.image,
+      };
+    }
+
+    return section;
+  }),
+};
+
+const updatedSiteData = {
+  ...project.site_data,
+  generated: updatedWebsiteData,
+};
     // Save generated website.
     const { data: updatedProject, error: updateError } = await supabase
       .from("projects")
