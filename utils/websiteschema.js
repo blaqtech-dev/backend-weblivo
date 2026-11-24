@@ -251,6 +251,24 @@ function validateWebsiteData(data) {
               );
             }
 
+            if (!isValidOptionalString(item.price, 50)) {
+  errors.push(
+    `Section ${index + 1}, item ${itemIndex + 1} has an invalid price.`
+  );
+}
+
+if (!isValidOptionalString(item.category, 100)) {
+  errors.push(
+    `Section ${index + 1}, item ${itemIndex + 1} has an invalid category.`
+  );
+}
+
+if (!isValidOptionalString(item.caption, 200)) {
+  errors.push(
+    `Section ${index + 1}, item ${itemIndex + 1} has an invalid caption.`
+  );
+}
+
             if (
               item.image !== undefined &&
               !validateImage(item.image)

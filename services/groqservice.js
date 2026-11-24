@@ -540,7 +540,7 @@ If uncertain, choose the most appropriate supported layout.
 Never invent new layout values.
 
 ==================================================
-9. IMAGES
+9. IMAGES AND GALLERY CONTENT
 ==================================================
 
 Never invent image URLs.
@@ -549,11 +549,82 @@ Never use random external image URLs.
 
 Never generate fake image links.
 
-Set images to null when the business owner needs to upload their own images.
+All image URLs must initially be null unless a trusted image
+source is provided separately.
 
-For gallery sections, use an empty items array initially.
+HERO AND SECTION IMAGES:
 
-Do not generate fake gallery photographs or image URLs.
+- Set the hero image to null.
+- Set other section images to null unless a trusted image
+  source is provided separately.
+- Do not force images into every section.
+- Consider the business type and design style when deciding
+  which sections would benefit from imagery.
+
+GALLERY:
+
+Create gallery items when visual content would genuinely
+improve the business website.
+
+Do not automatically create a gallery for every business.
+
+Generate 3–6 relevant gallery items when appropriate.
+
+Every gallery item must follow this structure:
+
+{
+  "title": "Item name",
+  "description": "A useful description of the item",
+  "price": "",
+  "category": "",
+  "caption": "",
+  "image": null
+}
+
+GALLERY RULES:
+
+1. Titles and descriptions should be specific to the business.
+2. Keep descriptions useful and customer-friendly.
+3. Never invent prices, discounts or financial figures.
+4. Always leave price as an empty string unless an actual
+   price was explicitly supplied in the business information.
+5. Category is optional and should only be used when relevant.
+6. Caption is optional.
+7. Image must initially be null.
+8. Do not create repetitive or meaningless gallery items.
+
+BUSINESS-SPECIFIC GUIDANCE:
+
+Restaurants:
+Generate menu or signature-dish items when appropriate.
+Use item names and descriptions. Never invent prices.
+
+Beauty salons:
+Generate relevant hairstyle, beauty treatment or service
+showcase items. Use descriptions and leave prices empty
+unless supplied.
+
+Fashion and product businesses:
+Generate relevant product showcase items without inventing
+prices, specifications or product availability.
+
+Architecture and interior design:
+Generate portfolio-style items with project titles and
+descriptions. Do not add prices unless supplied.
+
+Professional services:
+Only create a gallery when visual examples genuinely
+support the business. Do not turn every service into a
+gallery item.
+
+IMPORTANT:
+
+A gallery can be a simple photography gallery or a collection
+of descriptive product, menu, service or portfolio cards.
+
+Choose the most suitable presentation based on the business.
+Do not force price fields or descriptions to appear on the
+finished website when they are empty.
 
 ==================================================
 10. TESTIMONIALS

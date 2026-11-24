@@ -43,30 +43,50 @@ const generateWebsiteController = async (req, res) => {
       });
     }
 
-    // Reserve one AI credit atomically.
-    const { data: transactionId, error: creditError } =
-      await supabase.rpc("consume_user_credit", {
-        p_user_id: req.user.id,
-      });
+    // Check whether the current account is an administrator.
+    const { data: admin, error: adminError } = await supabase
+      .from("admin_users")
+      .select("user_id")
+      .eq("user_id", req.user.id)
+      .maybeSingle();
 
-    if (creditError) {
-      console.error("Credit deduction error:", creditError.message);
+    if (adminError) {
+      console.error("Admin verification error:", adminError.message);
 
       return res.status(500).json({
         success: false,
-        message: "Unable to verify your AI credits. Please try again.",
+        message: "Unable to verify account permissions. Please try again.",
       });
     }
 
-    if (!transactionId) {
-      return res.status(403).json({
-        success: false,
-        message:
-          "You have no AI credits remaining. Please upgrade your plan to continue generating websites.",
-      });
-    }
+    const isAdmin = Boolean(admin);
 
-    creditTransactionId = transactionId;
+    // Reserve one AI credit for ordinary users only.
+    if (!isAdmin) {
+      const { data: transactionId, error: creditError } =
+        await supabase.rpc("consume_user_credit", {
+          p_user_id: req.user.id,
+        });
+
+      if (creditError) {
+        console.error("Credit deduction error:", creditError.message);
+
+        return res.status(500).json({
+          success: false,
+          message: "Unable to verify your AI credits. Please try again.",
+        });
+      }
+
+      if (!transactionId) {
+        return res.status(403).json({
+          success: false,
+          message:
+            "You have no AI credits remaining. Please upgrade your plan to continue generating websites.",
+        });
+      }
+
+      creditTransactionId = transactionId;
+    }
 
     // Generate website using Groq.
     const websiteData = await generateWebsite({
@@ -108,25 +128,31 @@ const generateWebsiteController = async (req, res) => {
     }
 
     // Generation and saving succeeded.
-    // The reserved credit is now permanently consumed.
     creditTransactionId = null;
 
-    // Retrieve the updated credit balance.
-    const { data: billing, error: billingError } = await supabase
-      .from("user_billing")
-      .select("credits_remaining")
-      .eq("user_id", req.user.id)
-      .maybeSingle();
+    // Retrieve the updated credit balance for ordinary users.
+    let creditsRemaining = null;
 
-    if (billingError) {
-      console.error("Credit balance lookup error:", billingError.message);
+    if (!isAdmin) {
+      const { data: billing, error: billingError } = await supabase
+        .from("user_billing")
+        .select("credits_remaining")
+        .eq("user_id", req.user.id)
+        .maybeSingle();
+
+      if (billingError) {
+        console.error("Credit balance lookup error:", billingError.message);
+      }
+
+      creditsRemaining = billing?.credits_remaining ?? null;
     }
 
     return res.status(200).json({
       success: true,
       message: "Your website has been generated successfully.",
       project: updatedProject,
-      creditsRemaining: billing?.credits_remaining ?? null,
+      creditsRemaining,
+      unlimited: isAdmin,
     });
 
   } catch (error) {
@@ -151,7 +177,6 @@ const generateWebsiteController = async (req, res) => {
       }
     }
 
-    // Groq rate limit.
     if (error.status === 429) {
       return res.status(429).json({
         success: false,
@@ -160,7 +185,6 @@ const generateWebsiteController = async (req, res) => {
       });
     }
 
-    // AI service temporarily unavailable.
     if (error.status === 502 || error.status === 503) {
       return res.status(503).json({
         success: false,
@@ -169,7 +193,6 @@ const generateWebsiteController = async (req, res) => {
       });
     }
 
-    // Request timeout.
     if (
       error.code === "ETIMEDOUT" ||
       error.code === "ECONNABORTED"
@@ -181,7 +204,6 @@ const generateWebsiteController = async (req, res) => {
       });
     }
 
-    // Other unexpected errors.
     return res.status(error.status || 500).json({
       success: false,
       message:
